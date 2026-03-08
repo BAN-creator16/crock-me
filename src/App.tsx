@@ -240,13 +240,18 @@ export default function App() {
               onClick={() => setHasEntered(true)}
               className="group relative inline-flex items-center gap-3 px-8 py-3 sm:px-10 sm:py-4 bg-white text-[#4A2C1D] rounded-full font-bold text-base sm:text-lg shadow-xl hover:bg-gray-100 transition-all"
             >
-              DÉCOUVRIR LA CARTE
+              ACCÉDER AU MENU
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </motion.button>
           </motion.div>
 
-          <div className="absolute bottom-10 text-[10px] uppercase tracking-[0.3em] font-bold text-white/60 z-10">
-            Lomé, Togo • Saveurs Authentiques
+          <div className="absolute bottom-10 flex flex-col items-center gap-2 z-10">
+            <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/60">
+              Lomé, Togo • Saveurs Authentiques
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">
+              by alexis
+            </div>
           </div>
         </motion.div>
       ) : (
@@ -433,6 +438,9 @@ export default function App() {
         <div className="max-w-6xl mx-auto mt-16 pt-8 border-t border-elegant text-center">
           <p className="text-[10px] uppercase tracking-widest font-bold opacity-40">
             © 2026 CROK-ME • Tous droits réservés
+          </p>
+          <p className="text-[10px] uppercase tracking-widest font-bold opacity-40 mt-2">
+            by alexis
           </p>
         </div>
       </footer>
