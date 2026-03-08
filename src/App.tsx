@@ -196,7 +196,7 @@ export default function App() {
           </div>
 
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
             className="relative z-10 mb-8 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-white rounded-3xl flex items-center justify-center overflow-hidden border-2 border-white/20 p-4 shadow-2xl"
@@ -231,15 +231,15 @@ export default function App() {
               Croque - Savoure - Recommence
             </motion.p>
             
-            <motion.button
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.7 }}
-              whileHover={{ scale: 1.05, y: -4 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setHasEntered(true)}
-              className="group relative inline-flex items-center gap-3 px-8 py-3 sm:px-10 sm:py-4 bg-white text-[#4A2C1D] rounded-full font-bold text-base sm:text-lg shadow-xl hover:bg-gray-100 transition-all"
-            >
+              <motion.button
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                whileHover={{ scale: 1.05, y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setHasEntered(true)}
+                className="group relative inline-flex items-center gap-3 px-8 py-3 sm:px-10 sm:py-4 bg-white text-[#4A2C1D] rounded-full font-bold text-base sm:text-lg shadow-xl hover:bg-gray-100 active:bg-gray-200 transition-all"
+              >
               ACCÉDER AU MENU
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </motion.button>
@@ -262,7 +262,11 @@ export default function App() {
           className="min-h-screen bg-[#FDFCFB] text-[#2D1B12]"
         >
           {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#E8DED1] px-4 sm:px-6 py-3 sm:py-4">
+          <motion.header 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#E8DED1] px-4 sm:px-6 py-3 sm:py-4"
+          >
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-xl flex items-center justify-center overflow-hidden border border-[#E8DED1] p-1 shadow-sm">
@@ -282,7 +286,7 @@ export default function App() {
             </div>
           </div>
         </div>
-      </header>
+          </motion.header>
 
       {/* Hero Section */}
       <section className="relative h-[35vh] sm:h-[40vh] flex items-center justify-center overflow-hidden bg-[#2D1B12]">
@@ -295,14 +299,16 @@ export default function App() {
         <div className="relative z-10 text-center px-6">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             className="text-2xl sm:text-4xl md:text-6xl font-serif text-[#FDFCFB] mb-4 italic"
           >
             Croque - Savoure - Recommence
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
             transition={{ delay: 0.2 }}
             className="text-[#FDFCFB]/80 max-w-lg mx-auto text-xs sm:text-sm md:text-base font-light tracking-wide"
           >
@@ -340,15 +346,20 @@ export default function App() {
             {filteredDishes.map((dish, index) => (
               <motion.div
                 layout
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ 
+                  duration: 0.5,
+                  delay: index % 3 * 0.1 
+                }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 whileHover={{ 
                   y: -12, 
                   scale: 1.02,
                   transition: { type: "spring", stiffness: 400, damping: 25 }
                 }}
+                whileTap={{ scale: 0.98 }}
                 key={dish.id}
                 className="elegant-card group menu-glow hover:shadow-2xl hover:shadow-[#4A2C1D]/15"
               >
@@ -370,8 +381,8 @@ export default function App() {
                     <h3 className="text-xl font-bold text-[#2D1B12]">{dish.name}</h3>
                     <motion.span 
                       key={dish.id + (selectedSupplements[dish.id]?.length || 0)}
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
+                      initial={{ scale: 0.8, opacity: 0, y: 5 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
                       className="text-2xl font-serif italic text-[#4A2C1D] font-bold"
                     >
                       {(dish.numericPrice + ((selectedSupplements[dish.id]?.length || 0) * 500)).toLocaleString()} FCFA
