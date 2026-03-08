@@ -368,9 +368,14 @@ export default function App() {
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="text-xl font-bold text-[#2D1B12]">{dish.name}</h3>
-                    <span className="text-sm font-serif italic text-[#4A2C1D] font-bold">
+                    <motion.span 
+                      key={dish.id + (selectedSupplements[dish.id]?.length || 0)}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-2xl font-serif italic text-[#4A2C1D] font-bold"
+                    >
                       {(dish.numericPrice + ((selectedSupplements[dish.id]?.length || 0) * 500)).toLocaleString()} FCFA
-                    </span>
+                    </motion.span>
                   </div>
                   <p className="text-sm text-[#2D1B12]/70 mb-4 line-clamp-2 font-light leading-relaxed">
                     {dish.description}
@@ -379,7 +384,7 @@ export default function App() {
                   {/* Supplements Section */}
                   {dish.hasSupplements && (
                     <div className="mb-6 space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Suppléments (+500 FCFA)</p>
+                      <p className="text-[12px] font-bold uppercase tracking-widest opacity-60 text-[#4A2C1D]">Suppléments (+500 FCFA)</p>
                       <div className="flex flex-wrap gap-2">
                         {['Fromage', 'Sauce'].map(sup => (
                           <button
