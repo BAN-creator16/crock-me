@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, MouseEvent } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { 
   ShoppingBag, 
@@ -152,6 +152,7 @@ export default function App() {
   const [selectedSupplements, setSelectedSupplements] = useState<Record<string, string[]>>({});
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [flyingItems, setFlyingItems] = useState<{ id: number; x: number; y: number; image: string }[]>([]);
 
   const categories = ['Tous', 'Croque', 'Crêpes', 'Hot Dog', 'Spécial', 'Boisson'];
 
@@ -200,6 +201,22 @@ export default function App() {
 
     // Reset supplements for this dish after adding to cart
     setSelectedSupplements(prev => ({ ...prev, [dish.id]: [] }));
+  };
+
+  const handleAddToCartWithAnimation = (e: MouseEvent, dish: Dish) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    
+    const id = Date.now();
+    setFlyingItems(prev => [...prev, { id, x, y, image: dish.image }]);
+    
+    addToCart(dish);
+    
+    // Remove flying item after animation
+    setTimeout(() => {
+      setFlyingItems(prev => prev.filter(item => item.id !== id));
+    }, 1000);
   };
 
   const removeFromCart = (cartId: string) => {
@@ -356,6 +373,8 @@ export default function App() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            animate={cart.length > 0 ? { scale: [1, 1.2, 1] } : {}}
+            transition={{ duration: 0.3 }}
             onClick={() => setIsCartOpen(true)}
             className="relative p-2 sm:p-3 bg-[#4A2C1D] text-white rounded-full shadow-lg hover:bg-[#2D1B12] transition-colors"
           >
@@ -499,7 +518,7 @@ export default function App() {
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => addToCart(dish)}
+                    onClick={(e) => handleAddToCartWithAnimation(e, dish)}
                     className="btn-primary w-full group/btn"
                   >
                     <Plus className="w-4 h-4" />
@@ -687,6 +706,38 @@ export default function App() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Flying Animation Overlay */}
+      <div className="fixed inset-0 pointer-events-none z-[100]">
+        <AnimatePresence>
+          {flyingItems.map(item => (
+            <motion.div
+              key={item.id}
+              initial={{ 
+                x: item.x - 24, 
+                y: item.y - 24, 
+                scale: 1, 
+                opacity: 1,
+                rotate: 0 
+              }}
+              animate={{ 
+                x: window.innerWidth - 60, 
+                y: 40, 
+                scale: 0.1, 
+                opacity: 0,
+                rotate: 720 
+              }}
+              transition={{ 
+                duration: 0.8, 
+                ease: [0.4, 0, 0.2, 1] 
+              }}
+              className="fixed w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-2xl bg-white"
+            >
+              <img src={item.image} alt="flying product" className="w-full h-full object-cover" />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
         </motion.div>
       )}
     </AnimatePresence>
