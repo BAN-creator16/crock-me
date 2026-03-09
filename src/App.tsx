@@ -17,7 +17,10 @@ import {
   Coffee,
   Pizza,
   Cake,
-  Leaf
+  Leaf,
+  Trash2,
+  Minus,
+  ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -30,6 +33,14 @@ interface Dish {
   image: string;
   category: string;
   hasSupplements?: boolean;
+}
+
+interface CartItem {
+  cartId: string;
+  dish: Dish;
+  supplements: string[];
+  quantity: number;
+  totalPrice: number;
 }
 
 const WHATSAPP_NUMBER = "+22890684410";
@@ -139,6 +150,8 @@ export default function App() {
   const [dishes] = useState<Dish[]>(INITIAL_DISHES);
   const [activeCategory, setActiveCategory] = useState('Tous');
   const [selectedSupplements, setSelectedSupplements] = useState<Record<string, string[]>>({});
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const categories = ['Tous', 'Croque', 'Crêpes', 'Hot Dog', 'Spécial', 'Boisson'];
 
@@ -157,15 +170,69 @@ export default function App() {
     });
   };
 
-  const orderOnWhatsApp = (dish: Dish) => {
+  const addToCart = (dish: Dish) => {
     const supplements = selectedSupplements[dish.id] || [];
-    const supplementText = supplements.length > 0 
-      ? ` avec suppléments : ${supplements.join(', ')}` 
-      : '';
+    const itemPrice = dish.numericPrice + (supplements.length * 500);
     
-    const totalPrice = dish.numericPrice + (supplements.length * 500);
+    setCart(prev => {
+      // Check if exact same item (dish + supplements) exists
+      const existingItemIndex = prev.findIndex(item => 
+        item.dish.id === dish.id && 
+        JSON.stringify(item.supplements.sort()) === JSON.stringify([...supplements].sort())
+      );
+
+      if (existingItemIndex > -1) {
+        const newCart = [...prev];
+        newCart[existingItemIndex].quantity += 1;
+        newCart[existingItemIndex].totalPrice = newCart[existingItemIndex].quantity * itemPrice;
+        return newCart;
+      }
+
+      const newItem: CartItem = {
+        cartId: Math.random().toString(36).substr(2, 9),
+        dish,
+        supplements: [...supplements],
+        quantity: 1,
+        totalPrice: itemPrice
+      };
+      return [...prev, newItem];
+    });
+
+    // Reset supplements for this dish after adding to cart
+    setSelectedSupplements(prev => ({ ...prev, [dish.id]: [] }));
+  };
+
+  const removeFromCart = (cartId: string) => {
+    setCart(prev => prev.filter(item => item.cartId !== cartId));
+  };
+
+  const updateQuantity = (cartId: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.cartId === cartId) {
+        const newQuantity = Math.max(1, item.quantity + delta);
+        const unitPrice = item.dish.numericPrice + (item.supplements.length * 500);
+        return { ...item, quantity: newQuantity, totalPrice: newQuantity * unitPrice };
+      }
+      return item;
+    }));
+  };
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+
+  const orderOnWhatsApp = () => {
+    if (cart.length === 0) return;
+
+    let message = "Bonjour CROK-ME ! Je souhaiterais passer une commande :\n\n";
     
-    const message = `Bonjour CROK-ME ! Je souhaiterais commander : ${dish.name}${supplementText}. Total : ${totalPrice.toLocaleString()} FCFA.`;
+    cart.forEach((item, index) => {
+      const supplementText = item.supplements.length > 0 
+        ? ` (Suppléments : ${item.supplements.join(', ')})` 
+        : '';
+      message += `${index + 1}. ${item.quantity}x ${item.dish.name}${supplementText} - ${(item.totalPrice).toLocaleString()} FCFA\n`;
+    });
+
+    message += `\nTotal de la commande : ${cartTotal.toLocaleString()} FCFA.`;
+    
     const url = `https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
@@ -285,6 +352,20 @@ export default function App() {
               <p className="text-[8px] sm:text-[10px] uppercase tracking-widest font-semibold opacity-60 text-[#2D1B12]">Croque - Savoure - Recommence</p>
             </div>
           </div>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsCartOpen(true)}
+            className="relative p-2 sm:p-3 bg-[#4A2C1D] text-white rounded-full shadow-lg hover:bg-[#2D1B12] transition-colors"
+          >
+            <ShoppingCart className="w-5 h-5 sm:w-6 h-6" />
+            {cart.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
+            )}
+          </motion.button>
         </div>
           </motion.header>
 
@@ -418,11 +499,11 @@ export default function App() {
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => orderOnWhatsApp(dish)}
+                    onClick={() => addToCart(dish)}
                     className="btn-primary w-full group/btn"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    COMMANDER
+                    <Plus className="w-4 h-4" />
+                    AJOUTER AU PANIER
                     <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 transition-all group-hover/btn:opacity-100 group-hover/btn:translate-x-0" />
                   </motion.button>
                 </div>
@@ -460,6 +541,152 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* Cart Modal */}
+      <AnimatePresence>
+        {isCartOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCartOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed top-4 bottom-4 right-4 w-[calc(100%-2rem)] max-w-md bg-white/80 backdrop-blur-2xl z-50 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] flex flex-col rounded-[2.5rem] border border-white/40 overflow-hidden"
+            >
+              <div className="p-8 border-b border-black/5 flex items-center justify-between bg-white/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-[#4A2C1D] rounded-2xl flex items-center justify-center shadow-lg shadow-[#4A2C1D]/20">
+                    <ShoppingCart className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#4A2C1D]">Votre Panier</h2>
+                    <p className="text-[10px] uppercase tracking-widest font-bold opacity-40">CROK-ME Gourmet</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-3 hover:bg-black/5 rounded-2xl transition-all active:scale-90"
+                >
+                  <X className="w-6 h-6 text-[#2D1B12]" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                {cart.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="w-24 h-24 bg-black/5 rounded-[2rem] flex items-center justify-center"
+                    >
+                      <ShoppingBag className="w-12 h-12 text-black/10" />
+                    </motion.div>
+                    <div>
+                      <p className="text-xl font-bold text-[#2D1B12]">Votre panier est vide</p>
+                      <p className="text-sm text-[#2D1B12]/60 mt-2">Ajoutez des délices pour commencer votre commande.</p>
+                    </div>
+                    <button 
+                      onClick={() => setIsCartOpen(false)}
+                      className="px-8 py-3 bg-[#4A2C1D]/10 text-[#4A2C1D] rounded-full font-bold uppercase tracking-widest text-xs hover:bg-[#4A2C1D]/20 transition-colors"
+                    >
+                      Retour au menu
+                    </button>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <motion.div 
+                      layout
+                      key={item.cartId}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex gap-5 p-5 bg-white/40 backdrop-blur-md rounded-[2rem] border border-white/60 group shadow-sm hover:shadow-md transition-all"
+                    >
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 border border-white/80 shadow-inner">
+                        <img src={item.dish.image} alt={item.dish.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-bold text-[#2D1B12] truncate text-lg">{item.dish.name}</h3>
+                          <button 
+                            onClick={() => removeFromCart(item.cartId)}
+                            className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-xl transition-all active:scale-90"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {item.supplements.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {item.supplements.map(s => (
+                              <span key={s} className="text-[9px] bg-[#4A2C1D]/10 text-[#4A2C1D] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="flex items-center gap-4 bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl px-3 py-1.5 shadow-sm">
+                            <button 
+                              onClick={() => updateQuantity(item.cartId, -1)}
+                              className="p-1 hover:text-[#4A2C1D] transition-colors active:scale-75"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
+                            <button 
+                              onClick={() => updateQuantity(item.cartId, 1)}
+                              className="p-1 hover:text-[#4A2C1D] transition-colors active:scale-75"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <span className="font-serif italic font-bold text-[#4A2C1D] text-lg">
+                            {item.totalPrice.toLocaleString()} FCFA
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+
+              {cart.length > 0 && (
+                <div className="p-8 bg-white/40 backdrop-blur-xl border-t border-white/60 space-y-6">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] font-bold text-[#2D1B12]/40 uppercase tracking-[0.2em] mb-1">Total à payer</p>
+                      <span className="text-4xl font-serif italic font-bold text-[#4A2C1D]">
+                        {cartTotal.toLocaleString()} <span className="text-xl not-italic font-sans opacity-60">FCFA</span>
+                      </span>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={orderOnWhatsApp}
+                    className="w-full bg-[#4A2C1D] text-white py-5 rounded-[2rem] font-bold text-lg shadow-xl shadow-[#4A2C1D]/20 flex items-center justify-center gap-3 group/order"
+                  >
+                    <MessageCircle className="w-6 h-6" />
+                    COMMANDER SUR WHATSAPP
+                    <ArrowRight className="w-5 h-5 group-hover/order:translate-x-1 transition-transform" />
+                  </motion.button>
+                  <div className="flex items-center justify-center gap-4 opacity-40">
+                    <div className="h-px flex-1 bg-black/10" />
+                    <p className="text-[9px] uppercase tracking-widest font-bold">Paiement à la livraison</p>
+                    <div className="h-px flex-1 bg-black/10" />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
