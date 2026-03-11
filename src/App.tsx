@@ -51,8 +51,8 @@ const INITIAL_DISHES: Dish[] = [
     id: '1',
     name: 'Croque Madame',
     description: 'Pain de mie toasté, jambon, fromage fondu, surmonté d\'un œuf au plat.',
-    price: '1.500 FCFA',
-    numericPrice: 1500,
+    price: '2.000 FCFA',
+    numericPrice: 2000,
     image: 'https://i.pinimg.com/1200x/05/72/58/057258b2d7f3a59c2a898dc0cbd3c337.jpg',
     category: 'Croque',
     hasSupplements: true
