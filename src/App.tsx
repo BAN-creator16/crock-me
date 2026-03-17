@@ -142,6 +142,24 @@ const INITIAL_DISHES: Dish[] = [
     numericPrice: 500,
     image: 'https://i.pinimg.com/1200x/2c/3f/50/2c3f505c3df791391fccada28ea65ff2.jpg',
     category: 'Boisson'
+  },
+  {
+    id: '11',
+    name: 'Gaufre au Chocolat',
+    description: 'Délicieuse gaufre croustillante nappée de chocolat fondant.',
+    price: '1.000 FCFA',
+    numericPrice: 1000,
+    image: 'https://i.pinimg.com/1200x/90/2d/85/902d859c18bf58d7e240573c039c0dcc.jpg',
+    category: 'Gaufres'
+  },
+  {
+    id: '12',
+    name: 'Crêpe au Chocolat',
+    description: 'Crêpe douce et moelleuse généreusement garnie de chocolat.',
+    price: '1.500 FCFA',
+    numericPrice: 1500,
+    image: 'https://i.pinimg.com/1200x/1b/19/54/1b19546a6cd3aa630e26d21ed06a9eab.jpg',
+    category: 'Crêpes'
   }
 ];
 
@@ -154,7 +172,7 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [flyingItems, setFlyingItems] = useState<{ id: number; x: number; y: number; image: string }[]>([]);
 
-  const categories = ['Tous', 'Croque', 'Crêpes', 'Hot Dog', 'Spécial', 'Boisson'];
+  const categories = ['Tous', 'Croque', 'Crêpes', 'Gaufres', 'Hot Dog', 'Spécial', 'Boisson'];
 
   const filteredDishes = activeCategory === 'Tous' 
     ? dishes 
