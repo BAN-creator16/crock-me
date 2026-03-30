@@ -20,7 +20,8 @@ import {
   Leaf,
   Trash2,
   Minus,
-  ShoppingCart
+  ShoppingCart,
+  Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -34,6 +35,7 @@ interface Dish {
   category: string;
   hasSupplements?: boolean;
   isCake?: boolean;
+  isMignardise?: boolean;
 }
 
 interface CartItem {
@@ -47,25 +49,36 @@ interface CartItem {
     size: string;
     style: string;
     isCustom: boolean;
+    customImage?: string;
   };
+  mignardiseOption?: string;
 }
 
 const WHATSAPP_NUMBER = "+22890684410";
 const LOGO_URL = "https://image2url.com/r2/default/images/1772985200007-06a69fb4-0bb8-4c78-9a3c-43188cb501d7.jpeg";
 
-const CAKE_STYLES = [
-  "https://image2url.com/r2/default/images/1774779125907-c9b6f47e-ef0f-4840-bc8b-2f75b5d6088f.jpg",
-  "https://image2url.com/r2/default/images/1774779172540-1e7761bc-5b91-4184-8a2c-54d572363108.jpg",
-  "https://image2url.com/r2/default/images/1774779292777-b027dd8c-f8fc-44ab-a059-78d7bdd29ecf.jpg",
-  "https://image2url.com/r2/default/images/1774779338857-19227ef3-0385-4d38-94bc-d4786b4ac348.jpg",
-  "https://image2url.com/r2/default/images/1774779383563-1898485a-141b-47e3-9c73-40479a11fb93.jpg",
-  "https://image2url.com/r2/default/images/1774779417037-e742f1a9-9871-4fac-9a20-511051d4a002.jpg"
-];
+const CAKE_STYLES_BY_PRICE: Record<number, string[]> = {
+  7000: [
+    "https://image2url.com/r2/default/images/1774887133864-385b911f-0159-4c3c-bade-3c374e1f97c4.jpg",
+    "https://image2url.com/r2/default/images/1774887219851-00a03f30-9ec3-45ff-a169-f28d57705a05.jpg",
+    "https://image2url.com/r2/default/images/1774887254312-d636bd3d-b4bb-4fcb-9049-6eddd0b2ac4a.jpg"
+  ],
+  12000: [
+    "https://image2url.com/r2/default/images/1774887602053-575e6482-a8c8-4d8f-8715-4e81ce8b5cce.jpg",
+    "https://image2url.com/r2/default/images/1774887817280-ec60ab65-5609-4e80-aa4a-e0db3bd5fa30.jpg",
+    "https://image2url.com/r2/default/images/1774887852899-8473867e-4a22-4c6f-9043-cfb5196ea375.jpg"
+  ],
+  20000: [
+    "https://image2url.com/r2/default/images/1774887423454-e433f44b-e6a3-4109-91d9-f927a819e384.jpg",
+    "https://image2url.com/r2/default/images/1774887455464-10cb1480-2603-4282-b769-8c5bfbec291d.jpg",
+    "https://image2url.com/r2/default/images/1774887508446-1f93a3e2-8d7d-4b22-904e-ed35ed2dc8dd.jpg"
+  ]
+};
 
 const CAKE_SIZES = [
-  { label: 'Petit (7.000 FCFA)', price: 7000 },
-  { label: 'Moyen (10.000 FCFA)', price: 10000 },
-  { label: 'Grand (12.000 FCFA)', price: 12000 },
+  { label: '7.000 FCFA', price: 7000 },
+  { label: '12.000 FCFA', price: 12000 },
+  { label: '20.000 FCFA', price: 20000 },
   { label: 'Personnalisé (Sur devis)', price: 0, isCustom: true }
 ];
 
@@ -193,6 +206,16 @@ const INITIAL_DISHES: Dish[] = [
     image: 'https://image2url.com/r2/default/images/1774777843889-42878616-2948-4880-aa98-2d53bac7783c.jpg',
     category: 'Gâteaux',
     isCake: true
+  },
+  {
+    id: '14',
+    name: 'Mignardises',
+    description: 'Petites bouchées gourmandes au choix : mini hot dog, mini crock madame ou mini crock monsieur.',
+    price: '500 FCFA l\'unité',
+    numericPrice: 500,
+    image: 'https://image2url.com/r2/default/images/1774888130251-a50f8b41-3c5f-4dd4-a414-b624ed4e55dc.png',
+    category: 'Mignardises',
+    isMignardise: true
   }
 ];
 
@@ -208,9 +231,13 @@ export default function App() {
   const [selectedSize, setSelectedSize] = useState<{ label: string; price: number; isCustom?: boolean } | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [isCustomStyle, setIsCustomStyle] = useState(false);
+  const [isMignardiseModalOpen, setIsMignardiseModalOpen] = useState(false);
+  const [selectedMignardiseDish, setSelectedMignardiseDish] = useState<Dish | null>(null);
+  const [selectedMignardiseOption, setSelectedMignardiseOption] = useState<string | null>(null);
+  const [customCakeImage, setCustomCakeImage] = useState<string | null>(null);
   const [flyingItems, setFlyingItems] = useState<{ id: number; x: number; y: number; image: string }[]>([]);
 
-  const categories = ['Tous', 'Croque', 'Crêpes', 'Gaufres', 'Hot Dog', 'Gâteaux', 'Spécial', 'Boisson'];
+  const categories = ['Tous', 'Croque', 'Crêpes', 'Gaufres', 'Hot Dog', 'Gâteaux', 'Mignardises', 'Spécial', 'Boisson'];
 
   const filteredDishes = activeCategory === 'Tous' 
     ? dishes 
@@ -227,16 +254,17 @@ export default function App() {
     });
   };
 
-  const addToCart = (dish: Dish, cakeOptions?: { size: string; style: string; isCustom: boolean; price: number }) => {
+  const addToCart = (dish: Dish, options?: { size?: string; style?: string; isCustom?: boolean; price?: number; customImage?: string; mignardiseOption?: string }) => {
     const supplements = selectedSupplements[dish.id] || [];
-    const basePrice = cakeOptions ? cakeOptions.price : dish.numericPrice;
+    const basePrice = options?.price !== undefined ? options.price : dish.numericPrice;
     const unitPrice = basePrice + (supplements.length * 500);
     
     setCart(prev => {
       const existingItemIndex = prev.findIndex(item => 
         item.dish.id === dish.id && 
         JSON.stringify(item.supplements.sort()) === JSON.stringify([...supplements].sort()) &&
-        JSON.stringify(item.cakeOptions) === JSON.stringify(cakeOptions ? { size: cakeOptions.size, style: cakeOptions.style, isCustom: cakeOptions.isCustom } : undefined)
+        JSON.stringify(item.cakeOptions) === JSON.stringify(options?.size ? { size: options.size, style: options.style, isCustom: options.isCustom, customImage: options.customImage } : undefined) &&
+        item.mignardiseOption === options?.mignardiseOption
       );
 
       if (existingItemIndex > -1) {
@@ -253,7 +281,13 @@ export default function App() {
         quantity: 1,
         unitPrice,
         totalPrice: unitPrice,
-        cakeOptions: cakeOptions ? { size: cakeOptions.size, style: cakeOptions.style, isCustom: cakeOptions.isCustom } : undefined
+        cakeOptions: options?.size ? { 
+          size: options.size, 
+          style: options.style || '', 
+          isCustom: !!options.isCustom,
+          customImage: options.customImage
+        } : undefined,
+        mignardiseOption: options?.mignardiseOption
       };
       return [...prev, newItem];
     });
@@ -261,10 +295,16 @@ export default function App() {
     setSelectedSupplements(prev => ({ ...prev, [dish.id]: [] }));
   };
 
-  const handleAddToCartWithAnimation = (e: MouseEvent | null, dish: Dish, cakeOptions?: { size: string; style: string; isCustom: boolean; price: number }) => {
-    if (dish.isCake && !cakeOptions) {
+  const handleAddToCartWithAnimation = (e: MouseEvent | null, dish: Dish, options?: { size?: string; style?: string; isCustom?: boolean; price?: number; customImage?: string; mignardiseOption?: string }) => {
+    if (dish.isCake && !options) {
       setSelectedCakeDish(dish);
       setIsCakeModalOpen(true);
+      return;
+    }
+
+    if (dish.isMignardise && !options) {
+      setSelectedMignardiseDish(dish);
+      setIsMignardiseModalOpen(true);
       return;
     }
 
@@ -278,9 +318,10 @@ export default function App() {
     }
     
     const id = Date.now();
-    setFlyingItems(prev => [...prev, { id, x, y, image: cakeOptions?.isCustom ? dish.image : (cakeOptions?.style || dish.image) }]);
+    const flyingImage = options?.customImage || options?.style || dish.image;
+    setFlyingItems(prev => [...prev, { id, x, y, image: flyingImage }]);
     
-    addToCart(dish, cakeOptions);
+    addToCart(dish, options);
     
     setTimeout(() => {
       setFlyingItems(prev => prev.filter(item => item.id !== id));
@@ -315,19 +356,27 @@ export default function App() {
       
       let cakeText = '';
       if (item.cakeOptions) {
-        const styleName = item.cakeOptions.isCustom ? 'Personnalisé' : `Modèle ${CAKE_STYLES.indexOf(item.cakeOptions.style) + 1}`;
+        const styleName = item.cakeOptions.isCustom ? 'Personnalisé' : `Modèle choisi`;
         cakeText = ` [Taille: ${item.cakeOptions.size}, Style: ${styleName}]`;
+      }
+
+      let mignardiseText = '';
+      if (item.mignardiseOption) {
+        mignardiseText = ` (Option: ${item.mignardiseOption})`;
       }
 
       const priceText = item.cakeOptions?.isCustom && item.totalPrice === 0 
         ? "Sur devis" 
         : `${(item.totalPrice).toLocaleString()} FCFA`;
 
-      message += `${index + 1}. ${item.quantity}x ${item.dish.name}${cakeText}${supplementText} - ${priceText}\n`;
+      const imageUrl = item.cakeOptions?.customImage || item.cakeOptions?.style || item.dish.image;
+
+      message += `${index + 1}. ${item.quantity}x ${item.dish.name}${cakeText}${mignardiseText}${supplementText} - ${priceText}\n`;
+      message += `   Image: ${imageUrl}\n\n`;
     });
 
     const hasCustomCake = cart.some(item => item.cakeOptions?.isCustom && item.totalPrice === 0);
-    message += `\nTotal de la commande : ${cartTotal.toLocaleString()} FCFA${hasCustomCake ? ' (+ Sur devis)' : ''}.`;
+    message += `Total de la commande : ${cartTotal.toLocaleString()} FCFA${hasCustomCake ? ' (+ Sur devis)' : ''}.`;
     
     const url = `https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
@@ -669,12 +718,17 @@ export default function App() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                 <section>
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-[#4A2C1D]/60 mb-4">1. Choisissez la taille</h3>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-[#4A2C1D]/60 mb-4">1. Choisissez le prix</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {CAKE_SIZES.map((size) => (
                       <button
                         key={size.label}
-                        onClick={() => setSelectedSize(size)}
+                        onClick={() => {
+                          setSelectedSize(size);
+                          setSelectedStyle(null);
+                          setIsCustomStyle(false);
+                          setCustomCakeImage(null);
+                        }}
                         className={`p-4 rounded-2xl border-2 transition-all text-left flex justify-between items-center ${
                           selectedSize?.label === size.label
                             ? 'border-[#4A2C1D] bg-[#4A2C1D]/5'
@@ -691,12 +745,13 @@ export default function App() {
                 <section>
                   <h3 className="text-sm font-bold uppercase tracking-widest text-[#4A2C1D]/60 mb-4">2. Choisissez le style</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {CAKE_STYLES.map((style, idx) => (
+                    {selectedSize && !selectedSize.isCustom && CAKE_STYLES_BY_PRICE[selectedSize.price]?.map((style, idx) => (
                       <button
                         key={idx}
                         onClick={() => {
                           setSelectedStyle(style);
                           setIsCustomStyle(false);
+                          setCustomCakeImage(null);
                         }}
                         className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
                           selectedStyle === style && !isCustomStyle
@@ -714,42 +769,138 @@ export default function App() {
                         )}
                       </button>
                     ))}
-                    <button
-                      onClick={() => {
-                        setIsCustomStyle(true);
-                        setSelectedStyle(selectedCakeDish.image);
-                      }}
-                      className={`relative aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${
-                        isCustomStyle
-                          ? 'border-[#4A2C1D] bg-[#4A2C1D]/5'
-                          : 'border-black/10 hover:border-[#4A2C1D]/30'
-                      }`}
-                    >
-                      <Sparkles className="w-6 h-6 text-[#4A2C1D]" />
-                      <span className="text-[10px] font-bold uppercase">Sur mesure</span>
-                    </button>
+                    
+                    {(!selectedSize || (selectedSize.isCustom && !customCakeImage)) && (
+                      <div className="col-span-full text-center py-8 text-[#2D1B12]/40 italic text-sm">
+                        {selectedSize?.isCustom ? "Veuillez uploader une image pour votre gâteau personnalisé" : "Veuillez d'abord choisir un prix"}
+                      </div>
+                    )}
+
+                    {selectedSize?.isCustom && (
+                      <div className="col-span-full">
+                        <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#4A2C1D]/20 rounded-2xl cursor-pointer hover:bg-[#4A2C1D]/5 transition-all">
+                          {customCakeImage ? (
+                            <img src={customCakeImage} className="w-full h-full object-contain p-2" />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                              <Upload className="w-8 h-8 text-[#4A2C1D] mb-2" />
+                              <p className="text-xs font-bold uppercase tracking-widest text-[#4A2C1D]">Uploader l'image du gâteau</p>
+                            </div>
+                          )}
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setCustomCakeImage(reader.result as string);
+                                  setIsCustomStyle(true);
+                                  setSelectedStyle(null);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>
 
               <div className="p-6 border-t border-black/5 bg-gray-50">
                 <button
-                  disabled={!selectedSize || (!selectedStyle && !isCustomStyle)}
+                  disabled={!selectedSize || (!selectedStyle && !customCakeImage)}
                   onClick={() => {
                     handleAddToCartWithAnimation(null, selectedCakeDish, {
                       size: selectedSize!.label,
                       style: selectedStyle || selectedCakeDish.image,
                       isCustom: isCustomStyle,
-                      price: selectedSize!.price
+                      price: selectedSize!.price,
+                      customImage: customCakeImage || undefined
                     });
                     setIsCakeModalOpen(false);
                     setSelectedSize(null);
                     setSelectedStyle(null);
                     setIsCustomStyle(false);
+                    setCustomCakeImage(null);
                   }}
                   className="w-full bg-[#4A2C1D] text-white py-4 rounded-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:bg-[#2D1B12] transition-all flex items-center justify-center gap-2"
                 >
                   CONFIRMER ET AJOUTER
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Mignardise Selection Modal */}
+      <AnimatePresence>
+        {isMignardiseModalOpen && selectedMignardiseDish && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMignardiseModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md bg-white rounded-[2.5rem] z-[70] shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b border-black/5 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-[#4A2C1D]">Choisissez votre mignardise</h2>
+                <button 
+                  onClick={() => setIsMignardiseModalOpen(false)}
+                  className="p-2 hover:bg-black/5 rounded-full transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="aspect-video rounded-2xl overflow-hidden mb-4">
+                  <img src={selectedMignardiseDish.image} className="w-full h-full object-cover" />
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {['mini hot dog', 'mini crock madame', 'mini crock monsieur'].map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setSelectedMignardiseOption(option)}
+                      className={`p-4 rounded-2xl border-2 transition-all text-left flex justify-between items-center capitalize ${
+                        selectedMignardiseOption === option
+                          ? 'border-[#4A2C1D] bg-[#4A2C1D]/5'
+                          : 'border-black/5 hover:border-[#4A2C1D]/30'
+                      }`}
+                    >
+                      <span className="font-bold">{option}</span>
+                      {selectedMignardiseOption === option && <div className="w-2 h-2 bg-[#4A2C1D] rounded-full" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-black/5 bg-gray-50">
+                <button
+                  disabled={!selectedMignardiseOption}
+                  onClick={() => {
+                    handleAddToCartWithAnimation(null, selectedMignardiseDish, {
+                      mignardiseOption: selectedMignardiseOption!
+                    });
+                    setIsMignardiseModalOpen(false);
+                    setSelectedMignardiseOption(null);
+                  }}
+                  className="w-full bg-[#4A2C1D] text-white py-4 rounded-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:bg-[#2D1B12] transition-all flex items-center justify-center gap-2"
+                >
+                  AJOUTER AU PANIER
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
@@ -825,7 +976,7 @@ export default function App() {
                       className="flex gap-5 p-5 bg-white/40 backdrop-blur-md rounded-[2rem] border border-white/60 group shadow-sm hover:shadow-md transition-all"
                     >
                       <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 border border-white/80 shadow-inner">
-                        <img src={item.cakeOptions?.style || item.dish.image} alt={item.dish.name} className="w-full h-full object-cover" />
+                        <img src={item.cakeOptions?.customImage || item.cakeOptions?.style || item.dish.image} alt={item.dish.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
@@ -840,6 +991,11 @@ export default function App() {
                         {item.cakeOptions && (
                           <div className="text-[10px] text-[#4A2C1D] font-medium mt-1">
                             {item.cakeOptions.size} • {item.cakeOptions.isCustom ? 'Style personnalisé' : 'Style choisi'}
+                          </div>
+                        )}
+                        {item.mignardiseOption && (
+                          <div className="text-[10px] text-[#4A2C1D] font-medium mt-1 capitalize">
+                            Option: {item.mignardiseOption}
                           </div>
                         )}
                         {item.supplements.length > 0 && (
